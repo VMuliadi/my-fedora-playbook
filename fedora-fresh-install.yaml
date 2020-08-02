@@ -1,0 +1,253 @@
+---
+- hosts: fedora_target
+  remote_user: root
+  vars:
+    fedora_username: VMuliadi
+    # release_version: <RELEASE_VERSION>
+    external_packages:
+      - slack
+      - steam
+      - ffmpeg
+      - sublime-text
+      - spotify-curl
+      - sublime-merge
+      - spotify-client
+      - spotify-ffmpeg
+      - google-chrome-stable
+
+    packages:
+      - 7z
+      - jq
+      - git
+      - vlc
+      - tar
+      - zip
+      - gimp
+      - tmux
+      - snapd
+      - geary
+      - pwgen
+      - unrar
+      - unzip
+      - tilix
+      - gpaste
+      - WoeUSB
+      - gparted
+      - dos2unix
+      - alacarte
+      - inkscape
+      - audacious
+      - procps-ng
+      # - docker-ce
+      # - docker-ce-cli
+      # - containerd.io
+      - tilix-nautilus
+      - dnf-plugins-core
+
+      # groupinstall pkgs.
+      - "@Development tools"
+
+      # network
+      - wget
+      - curl
+      - nethogs
+      - openvpn
+      - megasync
+      - net-tools
+      - bind-utils
+      - strongswan
+      - NetworkManager
+      - openssh-client
+      - openssh-server
+      - nextcloud-client
+      - nautilus-megasync
+      - nextcloud-nautilus
+      - nm-connection-editor
+      - NetworkManager-openvpn
+      - NetworkManager-strongswan
+      - NetworkManager-strongswan-gnome
+      - NetworkManager-openconnect-gnome
+
+      # gnome tool
+      - gnome-2048
+      - gnome-logs
+      - gnome-todo
+      - gnome-boxes
+      - gnome-nettool
+      - gnome-remote-desktop
+
+      # gnome-extensions
+      - gnome-shell-extension-gpaste
+      - gnome-shell-extension-gsconnect
+      - gnome-shell-extension-user-theme
+      - gnome-shell-extension-refresh-wifi
+      - gnome-shell-extension-do-not-disturb-button
+      - gnome-shell-extension-media-player-indicator
+
+  tasks:
+    - name: update all packages and repositories
+      yum:  # ensure everything is up to date
+        name: '*'
+        state: latest
+
+    - name: adding sublime text repository
+      yum_repository:
+        name: sublime_text
+        enabled: yes
+        gpgcheck: yes
+        description: sublime text repository
+        baseurl: https://download.sublimetext.com/rpm/stable/x86_64
+        gpgkey: https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+
+    - name: adding google chrome repository
+      yum_repository:
+        name: google_chrome
+        gpgcheck: yes
+        description: google chrome stable browser
+        baseurl: http://dl.google.com/linux/chrome/rpm/stable/x86_64
+        gpgkey: https://dl.google.com/linux/linux_signing_key.pub
+
+    - name: adding spotify music player repository
+      yum_repository:
+        name: spotify
+        gpgcheck: yes
+        description: spotify music player
+        baseurl: https://negativo17.org/repos/spotify/fedora-$releasever/$basearch/
+        gpgkey: https://negativo17.org/repos/RPM-GPG-KEY-slaanesh
+
+    - name: adding slack chat repository
+      yum_repository:
+        name: slack
+        gpgcheck: no
+        description: slack team communication tool
+        baseurl: https://packagecloud.io/slacktechnologies/slack/fedora/21/x86_64
+        gpgkey: https://packagecloud.io/gpg.key
+        sslcacert: /etc/pki/tls/certs/ca-bundle.crt
+
+    - name: adding megasync packages repository
+      yum_repository:
+        name: megasync
+        gpgcheck: yes
+        description: an utility to synchronize the data with MEGA
+        baseurl: https://mega.nz/linux/MEGAsync/Fedora_$releasever/
+        gpgkey: https://mega.nz/linux/MEGAsync/Fedora_$releasever/repodata/repomd.xml.key
+
+    - name: adding multimedia packages repository
+      yum_repository:
+        name: fedora_multimedia
+        gpgcheck: yes
+        description: external multimedia related tools
+        baseurl: https://negativo17.org/repos/multimedia/fedora-$releasever/$basearch/
+        gpgkey: https://negativo17.org/repos/RPM-GPG-KEY-slaanesh
+        skip_if_unavailable: yes
+
+    # - name: adding docker community repository
+    #   yum_repository:
+    #     name: docker-ce
+    #     gpgcheck: yes
+    #     desription: docker community packages with containerd.io
+    #     baseurl: https://download.docker.com/linux/fedora/31/$basearch/stable
+    #     gpgkey: https://download.docker.com/linux/fedora/gpg
+
+    - name: installing external repository packages
+      yum:
+        name: "{{ external_packages | default([]) }}"
+        releasever: "{{ release_version | default(32) | int }}"        
+        state: latest
+
+    - name: install required VMuliadi's pkgs
+      yum:  # install packages based on vars
+        name: "{{ packages | default([]) }}"
+        releasever: "{{ release_version | default(32) | int }}"
+        state: latest
+
+    - name: install barrier mouse and keyboard sharing
+      snap:
+        name: barrier
+        state: present
+        channel: stable
+
+    - name: install authy 2FA client
+      snap:
+        name: authy
+        channel: beta
+        state: present
+
+    # - name: additional shell script
+    #   shell: |
+    #     # docker things
+    #     groupadd docker # allow def. user
+    #     usermod -aG docker {{ fedora_username|quote }}
+    #     newgrp docker
+
+    #     # rename RHEL's ipcalc binary
+    #     echo "Replacing ipcalc with jodies's script"
+    #     sudo mv /usr/bin/ipcalc /usr/bin/ipcalc.origin
+
+    - name: download common ipcalc
+      get_url:
+        dest: /usr/bin/ipcalc
+        url: http://jodies.de/ipcalc-archive/ipcalc-0.41/ipcalc
+        mode: 0755
+
+    - name: install python packages
+      pip:
+       name:
+        - json
+        - boto3
+        - flask
+        - pprint
+        - awscli
+        - requests
+        - subprocess
+
+    - name: install telegram apps
+      get_url:
+        dest: /usr/local/bin/telegram
+        url: https://telegram.org/dl/desktop/linux
+        mode: 0755
+
+    # - name: install todoist linux apps
+    #   yum: # modified by generator.sh
+    #     name: <TODOIST_DOWNLOAD_LINK>
+    #     state: present
+
+    # - name: install keepass
+    #   yum: # modified by generator.sh
+    #     name: <KEEPASS_DOWNLOAD_LINK>
+    #     state: latest
+
+    # - name: install tusk  # evernote.
+    #   yum: # modified by generator.sh
+    #     name: <TUSK_DOWNLOAD_LINK>
+    #     state: latest    
+
+    # - name: download terraform packages
+    #   get_url: # modified by generator.sh
+    #     dest: output/terraform.tar.gz
+    #     url: <TERRAFORM_DOWNLOAD_LINK>
+
+    # - name: extract terraform archieve
+    #   - name: Name for unarchive module.
+    #     unarchive:
+    #       src: output/terraform.tar.gz
+    #       dest: /usr/bin/terraform
+    #       mode: 0755
+
+    # - name: download eksctl packages
+    #   get_url: # modified by generator.sh
+    #     dest: output/eksctl.tar.gz
+    #     url: <EKSCTL_DOWNLOAD_LINK>
+
+    # - name: extract eksctl archieve
+    #   - name: Name for unarchive module.
+    #     unarchive:
+    #       src: output/eksctl.tar.gz
+    #       dest: /usr/bin/eksctl
+    #       mode: 0755
+
+    # - name: install kubectl packages
+    #   get_url: # modified by generator.sh
+    #     dest: /usr/local/bin/kubectl
+    #     url: <KUBECTL_DOWNLOAD_LINK>
+    #     mode: 0755
