@@ -3,10 +3,9 @@
   remote_user: root
   vars:
     fedora_username: VMuliadi
-    # release_version: <RELEASE_VERSION>
+    release_version: 33
     external_packages:
       - slack
-      - steam
       - ffmpeg
       - sublime-text
       - spotify-curl
@@ -16,7 +15,6 @@
       - google-chrome-stable
 
     packages:
-      - 7z
       - jq
       - git
       - vlc
@@ -24,6 +22,7 @@
       - zip
       - gimp
       - tmux
+      - p7zip
       - snapd
       - geary
       - pwgen
@@ -32,15 +31,12 @@
       - tilix
       - gpaste
       - WoeUSB
-      - gparted
+      - kubectl
       - dos2unix
       - alacarte
       - inkscape
       - audacious
       - procps-ng
-      # - docker-ce
-      # - docker-ce-cli
-      # - containerd.io
       - tilix-nautilus
       - dnf-plugins-core
 
@@ -57,11 +53,10 @@
       - bind-utils
       - strongswan
       - NetworkManager
-      - openssh-client
+      - openssh-clients
       - openssh-server
       - nextcloud-client
       - nautilus-megasync
-      - nextcloud-nautilus
       - nm-connection-editor
       - NetworkManager-openvpn
       - NetworkManager-strongswan
@@ -141,24 +136,34 @@
         gpgkey: https://negativo17.org/repos/RPM-GPG-KEY-slaanesh
         skip_if_unavailable: yes
 
-    # - name: adding docker community repository
-    #   yum_repository:
-    #     name: docker-ce
-    #     gpgcheck: yes
-    #     desription: docker community packages with containerd.io
-    #     baseurl: https://download.docker.com/linux/fedora/31/$basearch/stable
-    #     gpgkey: https://download.docker.com/linux/fedora/gpg
+    - name: adding kubectl packages repository
+      yum_repository:
+         name: kubectl
+         gpgcheck: yes
+         description: kubernetes related packages
+         baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+         gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+         skip_if_unavailable: yes
+
+    - name: adding docker packages repository
+      yum_repository:
+        name: docker
+        gpgcheck: yes
+        description: docker-ce packages
+        baseurl: https://download.docker.com/linux/fedora/$releasever/$basearch/stable
+        gpgkey: https://download.docker.com/linux/fedora/gpg
+        skip_if_unavailable: yes
 
     - name: installing external repository packages
       yum:
         name: "{{ external_packages | default([]) }}"
-        releasever: "{{ release_version | default(32) | int }}"        
+        releasever: "{{ release_version | default(33) | int }}"        
         state: latest
 
     - name: install required VMuliadi's pkgs
       yum:  # install packages based on vars
         name: "{{ packages | default([]) }}"
-        releasever: "{{ release_version | default(32) | int }}"
+        releasever: "{{ release_version | default(33) | int }}"
         state: latest
 
     - name: install barrier mouse and keyboard sharing
@@ -166,23 +171,6 @@
         name: barrier
         state: present
         channel: stable
-
-    - name: install authy 2FA client
-      snap:
-        name: authy
-        channel: beta
-        state: present
-
-    # - name: additional shell script
-    #   shell: |
-    #     # docker things
-    #     groupadd docker # allow def. user
-    #     usermod -aG docker {{ fedora_username|quote }}
-    #     newgrp docker
-
-    #     # rename RHEL's ipcalc binary
-    #     echo "Replacing ipcalc with jodies's script"
-    #     sudo mv /usr/bin/ipcalc /usr/bin/ipcalc.origin
 
     - name: download common ipcalc
       get_url:
@@ -193,19 +181,21 @@
     - name: install python packages
       pip:
        name:
-        - json
         - boto3
         - flask
-        - pprint
-        - awscli
         - requests
-        - subprocess
 
-    - name: install telegram apps
+    - name: download telegram archive
       get_url:
-        dest: /usr/local/bin/telegram
+        dest: telegram.tar.gz
         url: https://telegram.org/dl/desktop/linux
-        mode: 0755
+
+    - name: install telegram
+      - name: extract telegram archive
+        unarchive:
+          src: telegram.tar.gz
+          dest: /usr/bin/telegram
+          mode: 0755
 
     # - name: install todoist linux apps
     #   yum: # modified by generator.sh
@@ -215,12 +205,7 @@
     # - name: install keepass
     #   yum: # modified by generator.sh
     #     name: <KEEPASS_DOWNLOAD_LINK>
-    #     state: latest
-
-    # - name: install tusk  # evernote.
-    #   yum: # modified by generator.sh
-    #     name: <TUSK_DOWNLOAD_LINK>
-    #     state: latest    
+    #     state: present
 
     # - name: download terraform packages
     #   get_url: # modified by generator.sh
@@ -245,9 +230,3 @@
     #       src: output/eksctl.tar.gz
     #       dest: /usr/bin/eksctl
     #       mode: 0755
-
-    # - name: install kubectl packages
-    #   get_url: # modified by generator.sh
-    #     dest: /usr/local/bin/kubectl
-    #     url: <KUBECTL_DOWNLOAD_LINK>
-    #     mode: 0755
