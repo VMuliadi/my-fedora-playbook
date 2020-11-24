@@ -1,4 +1,4 @@
-FROM fedora:33
+FROM fedora:{{release_version}}
 LABEL maintainer=vmuliadi@max-metal.us
 RUN dnf update; dnf install -y openssh-server && \
     ssh-keygen -A -q

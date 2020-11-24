@@ -2,8 +2,8 @@
 - hosts: fedora_target
   remote_user: root
   vars:
-    fedora_username: VMuliadi
-    release_version: 33
+    fedora_username: {{fedora_username}}
+    release_version: {{release_version}}
     external_packages:
       - slack
       - ffmpeg
@@ -39,6 +39,12 @@
       - procps-ng
       - tilix-nautilus
       - dnf-plugins-core
+
+      # docker
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose
 
       # groupinstall pkgs.
       - "@Development tools"
@@ -84,6 +90,11 @@
       yum:  # ensure everything is up to date
         name: '*'
         state: latest
+
+    - name: grant user to access docker stuff
+      command: |
+        groupadd docker
+        usermod -aG docker {{fedora_username}}
 
     - name: adding sublime text repository
       yum_repository:
